@@ -8,6 +8,18 @@
 </head>
 <body>
     <?php include 'include/nav.php'; ?>
+     <div class="container d-flex flex-column justify-content-center align-items-center" style="height: 80vh;">
+
+        <h1 class="mb-4 text-center">Bienvenue sur ConnectSys</h1>
+
+        <div class="d-flex gap-3">
+            <a href="auth/login.php" class="btn btn-primary btn-lg">Login</a>
+            <a href="auth/register.php" class="btn btn-success btn-lg">Register</a>
+        </div>
+
+    </div>
+
+
 
 </body>
 </html>
