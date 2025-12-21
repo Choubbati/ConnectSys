@@ -16,7 +16,7 @@ if (!isset($_SESSION["user"])) {
 </head>
 <body>
 
-<?php include_once 'include/nav.php'; ?>
+<?php require 'includes/nav.php' ?>
 
 <div class="container mt-5">
 
@@ -26,7 +26,7 @@ if (!isset($_SESSION["user"])) {
     </div>
 
     <div class="card shadow">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-success text-white">
              Informations du profil
         </div>
 
@@ -38,7 +38,10 @@ if (!isset($_SESSION["user"])) {
 
             <p>
                 <strong>Date d'inscription :</strong>
-                <?= htmlspecialchars($_SESSION["user"]["date_creation"]) ?>
+                <?= 
+              //  var_dump($_SESSION["user"]["created_at"] )
+               htmlspecialchars($_SESSION["user"]["created_at"] ??  'non disponible')
+                 ?>
             </p>
 
             <p>

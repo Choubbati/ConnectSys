@@ -1,248 +1,155 @@
 <?php
 session_start();
 
-
-include_once __DIR__ . '/config/database.php';
-if (!isset($_SESSION['user'])) {
+if (!isset($_SESSION["user"])) {
     header("Location: auth/login.php");
     exit;
 }
 
+require 'database/connextion.php';
 
+$user_id = $_SESSION['user']['id'];
 
-    $user_id=$_SESSION['user']['id'];
-    $message= "";
-
-
-
-if (isset($_POST['submit'])) {
-    $name    = trim($_POST['name']);
-    $phone   = trim($_POST['tele']);
-    $email   = trim($_POST['email']);
-    $address = trim($_POST['address']);
-
-    if (!empty($name) && !empty($phone) && !empty($email) && !empty($address)) {
-
-        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
-            $sql = $pdo->prepare(
-                "INSERT INTO contacts (user_id, name, phone, email, address)
-                 VALUES (?, ?, ?, ?, ?)"
-            );
-            $sql->execute([$user_id, $name, $phone, $email, $address]);
-
-            $message = "<div class='alert alert-success'>Contact ajouté avec succès</div>";
-
-        } else {
-            $message = "<div class='alert alert-danger'>Email invalide</div>";
-        }
-
-    } else {
-        $message = "<div class='alert alert-danger'>Tous les champs sont obligatoires</div>";
-    }
-}
-
-
-$sql = $pdo->prepare('SELECT * FROM contacts WHERE user_id = ? ORDER BY id DESC');
+$sql = $pdo->prepare("SELECT * FROM contacts WHERE user_id = ? ORDER BY id DESC");
 $sql->execute([$user_id]);
-$contacts =$sql->fetchAll();
+$contacts = $sql->fetchAll(PDO::FETCH_ASSOC);
 
+$message = $_SESSION['message'] ?? '';
+unset($_SESSION['message']);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <title>Contacts</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body class="bg-light">
 
-    <?php include_once 'include/nav.php'; ?>
+<?php require 'includes/nav.php'; ?>
 
+<div class="container mt-4">
+    <h3>Mes contacts</h3>
+    <?= $message ?>
 
+    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addContact">
+        Ajouter un contact
+    </button>
 
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Nom</th>
+                <th>Téléphone</th>
+                <th>Email</th>
+                <th>Adresse</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
 
-<div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <?php if (empty($contacts)): ?>
+            <tr>
+                <td colspan="5" class="text-center">Aucun contact</td>
+            </tr>
+        <?php endif; ?>
+
+        <?php foreach ($contacts as $c): ?>
+            <tr>
+                <td><?= htmlspecialchars($c['name']) ?></td>
+                <td><?= htmlspecialchars($c['phone']) ?></td>
+                <td><?= htmlspecialchars($c['email']) ?></td>
+                <td><?= htmlspecialchars($c['address']) ?></td>
+                <td>
+                    <button class="btn btn-warning btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#editContact"
+                        data-id="<?= $c['id'] ?>"
+                        data-name="<?= htmlspecialchars($c['name']) ?>"
+                        data-phone="<?= htmlspecialchars($c['phone']) ?>"
+                        data-email="<?= htmlspecialchars($c['email']) ?>"
+                        data-address="<?= htmlspecialchars($c['address']) ?>">
+                        Modifier
+                    </button>
+
+                    <a href="auth/crud.php?delete=<?= $c['id'] ?>"
+                       onclick="return confirm('Supprimer ce contact ?')"
+                       class="btn btn-danger btn-sm">
+                       Supprimer
+                    </a>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="addContact" tabindex="-1">
   <div class="modal-dialog">
-    <div class="modal-content">
+    <form method="POST" action="auth/crud.php" class="modal-content">
+
       <div class="modal-header">
-        <h1 class="modal-title fs-5" id="staticBackdropLabel">Ajouter un Contact</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title">Ajouter un contact</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
+
       <div class="modal-body">
-       
-            <div class="col-md-12 " >
-                <div class="card shadow">
-                    <div class="card-header bg-primary text-white">
-                        Ajouter / Modifier contact
-                    </div>
-
-                    <div class="card-body">
-                        <form method="POST">
-                            <div class="mb-3">
-                                <label class="form-label">Nom *</label>
-                                <input type="text" name="name" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Téléphone</label>
-                                <input type="text" name="tele" class="form-control">
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Email *</label>
-                                <input type="email" name="email" class="form-control" required>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Adresse</label>
-                                <textarea name="address" class="form-control"></textarea>
-                            </div>
-
-                            <button type="submit" name="submit" class="btn btn-success w-100">
-                                Enregistrer
-                            </button>
-
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+        <input type="text" name="name" class="form-control mb-2" placeholder="Nom" required>
+        <input type="text" name="phone" class="form-control mb-2" placeholder="Téléphone" required>
+        <input type="email" name="email" class="form-control mb-2" placeholder="Email" required>
+        <textarea name="address" class="form-control" placeholder="Adresse" required></textarea>
       </div>
 
-    </div>
+      <div class="modal-footer">
+        <button type="submit" name="add" class="btn btn-primary">Ajouter</button>
+      </div>
+
+    </form>
   </div>
 </div>
 
-
-
-
-    
-
-    <div class="container mt-6 ">
-
-        <h3 class="mb-3">Mes contacts</h3>
-                                <?= $message ?>
-
-
-        <button type="button" class="btn btn-primary mx-auto m-2 " data-bs-toggle="modal"  data-bs-target="#staticBackdrop"> Ajouter Un Contact</button>
-        <div class="row">
-
-            <div class="col-md-12">
-                <table class="table table-bordered table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Nom</th>
-                            <th>Téléphone</th>
-                            <th>Email</th>
-                            <th>Adresse</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-
-                        <?php if (empty($contacts)): ?>
-
-                        <tr>
-                            <td colspan="4" class="text-center">Aucun contact</td>
-                        </tr>
-                        <?php else: ?>
-                        <?php foreach($contacts as $c): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($c['name']) ?></td>
-                            <td><?= htmlspecialchars($c['phone']) ?></td>
-                            <td><?= htmlspecialchars($c['email']) ?></td>
-                            <td><?= htmlspecialchars($c['address']) ?></td>
-                            <td>
-
-                                <a href="modifier.php?id=<?= $c['id'] ?>" class="btn btn-sm btn-warning" data-bs-toggle="modal"  data-bs-target="#staticBackdrop1">Modifier</a>
-                                <a href="suprimer.php?id=<?= $c['id'] ?>"
-                                    onclick="return confirm('Voulez-vous vraiment supprimer le contact <?= htmlspecialchars($c['name']) ?> ?')"
-                                    class="btn btn-sm btn-danger">
-                                    Supprimer
-                                </a>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-
-                        <?php endif; ?>
-
-                    </tbody>
-                </table>
-            </div>
-
-            
-            
-
-
-
-
-<div class="modal fade" id="staticBackdrop1" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<div class="modal fade" id="editContact" tabindex="-1">
   <div class="modal-dialog">
-    <div class="modal-content">
+    <form method="POST" action="auth/crud.php" class="modal-content">
+
       <div class="modal-header">
-        <h1 class="modal-title fs-5" id="staticBackdropLabel">Modifier un Contact</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title">Modifier contact</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
+
       <div class="modal-body">
-       
-            <div class="col-md-12 " >
-                <div class="card shadow">
-                    <div class="card-header bg-primary text-white">
-                        Modifier contact
-                    </div>
+        <input type="hidden" name="id" id="edit-id">
 
-                    <div class="card-body">
-
-                    <php 
-                            var_dump($_)
-                    ?>
-                        
-                        <form method="GET">
-                            <div class="mb-3">
-                                <label class="form-label">Nom *</label>
-                                <input type="text" name="name" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Téléphone</label>
-                                <input type="text" name="tele" class="form-control">
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Email *</label>
-                                <input type="email" name="email" class="form-control" required>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Adresse</label>
-                                <textarea name="address" class="form-control"></textarea>
-                            </div>
-
-                            <button type="submit" name="modifier" class="btn btn-success w-100">
-                                Modifier
-                            </button>
-
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+        <input type="text" name="name" id="edit-name" class="form-control mb-2" required>
+        <input type="text" name="phone" id="edit-phone" class="form-control mb-2" required>
+        <input type="email" name="email" id="edit-email" class="form-control mb-2" required>
+        <textarea name="address" id="edit-address" class="form-control" required></textarea>
       </div>
 
-    </div>
+      <div class="modal-footer">
+        <button type="submit" name="update" class="btn btn-success">Modifier</button>
+      </div>
+
+    </form>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
+<script>
+const editModal = document.getElementById('editContact');
+editModal.addEventListener('show.bs.modal', function (event) {
+    const btn = event.relatedTarget;
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    document.getElementById('edit-id').value = btn.getAttribute('data-id');
+    document.getElementById('edit-name').value = btn.getAttribute('data-name');
+    document.getElementById('edit-phone').value = btn.getAttribute('data-phone');
+    document.getElementById('edit-email').value = btn.getAttribute('data-email');
+    document.getElementById('edit-address').value = btn.getAttribute('data-address');
+});
+</script>
+
 </body>
-
 </html>
